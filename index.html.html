@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exercices imprimables</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <header class="topbar no-print">
+    <h1>Exercices imprimables</h1>
+  </header>
+
+  <main class="container">
+
+    <div class="controls no-print">
+      <input
+        type="text"
+        id="search"
+        placeholder="Rechercher un exercice..."
+      >
+
+      <select id="niveau">
+        <option value="">Tous les niveaux</option>
+      </select>
+    </div>
+
+    <div id="liste"></div>
+
+  </main>
+
+  <script>
+    let exercices = [];
+
+    async function chargerExercices() {
+      const response = await fetch("exercices.json");
+      exercices = await response.json();
+
+      const niveaux = [...new Set(exercices.map(ex => ex.niveau).filter(Boolean))];
+      const selectNiveau = document.getElementById("niveau");
+
+      niveaux.forEach(niveau => {
+        const option = document.createElement("option");
+        option.value = niveau;
+        option.textContent = niveau;
+        selectNiveau.appendChild(option);
+      });
+
+      afficherExercices(exercices);
+    }
+
+    function afficherExercices(listeExercices) {
+      const liste = document.getElementById("liste");
+      liste.innerHTML = "";
+
+      if (listeExercices.length === 0) {
+        liste.innerHTML = "<p>Aucun exercice trouvé.</p>";
+        return;
+      }
+
+      listeExercices.forEach(exercice => {
+        const card = document.createElement("article");
+        card.className = "card";
+
+        card.innerHTML = `
+          <h2>${escapeHtml(exercice.titre)}</h2>
+          <p>${escapeHtml(exercice.description || "")}</p>
+          <p><strong>Niveau :</strong> ${escapeHtml(exercice.niveau || "-")}</p>
+          <a href="exercice.html?id=${encodeURIComponent(exercice.id)}">
+            Ouvrir / Imprimer
+          </a>
+        `;
+
+        liste.appendChild(card);
+      });
+    }
+
+    function escapeHtml(text) {
+      return String(text || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function filtrer() {
+      const recherche = document.getElementById("search").value.toLowerCase();
+      const niveau = document.getElementById("niveau").value;
+
+      const resultats = exercices.filter(exercice => {
+        const correspondNiveau = !niveau || exercice.niveau === niveau;
+
+        const correspondRecherche =
+          (exercice.titre || "").toLowerCase().includes(recherche) ||
+          (exercice.description || "").toLowerCase().includes(recherche);
+
+        return correspondNiveau && correspondRecherche;
+      });
+
+      afficherExercices(resultats);
+    }
+
+    document.getElementById("search").addEventListener("input", filtrer);
+    document.getElementById("niveau").addEventListener("change", filtrer);
+
+    chargerExercices();
+  </script>
+
+</body>
+</html>
